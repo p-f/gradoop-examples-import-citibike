@@ -94,6 +94,26 @@ public class CitibikeDataImporter implements DataSource {
   private static final PropertyValue UNSET = PropertyValue.create("\\N");
 
   /**
+   * The label for trip-type vertices.
+   */
+  public static final String LABEL_TRIP = "trip";
+
+  /**
+   * The label for Station-type vertices.
+   */
+  public static final String LABEL_STATION = "Station";
+
+  /**
+   * The property used to temporarily store infos about the start station.
+   */
+  private final String PROP_START_STATION = "start_station";
+
+  /**
+   * The property used to temporarily store infos about the end station.
+   */
+  private final String PROP_END_STATION = "end_station";
+
+  /**
    * The path of the input CSV file/files.
    */
   private final String inputPath;
@@ -130,33 +150,33 @@ public class CitibikeDataImporter implements DataSource {
       return v;
     });
     ExtractPropertyFromVertex extractTripStart = new ExtractPropertyFromVertex(
-      "trip", "start_station", "Station", "s", EdgeDirection.NEWVERTEX_TO_ORIGIN, "trip_start");
+      LABEL_TRIP, PROP_START_STATION, LABEL_STATION, "s", EdgeDirection.NEWVERTEX_TO_ORIGIN, "trip_start");
     extractTripStart.setCondensation(false);
     ExtractPropertyFromVertex extractTripEnd = new ExtractPropertyFromVertex(
-      "trip", "end_station", "Station", "s", EdgeDirection.ORIGIN_TO_NEWVERTEX, "trip_end");
+      LABEL_TRIP, PROP_END_STATION, LABEL_STATION, "s", EdgeDirection.ORIGIN_TO_NEWVERTEX, "trip_end");
     extractTripEnd.setCondensation(false);
     // Extract stations.
     LogicalGraph transformed = inputGraph
-      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, "start_station",
+      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, PROP_START_STATION,
         (Function<String, String> & Serializable) (k -> k.substring(14))))
-      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_END_ATTRIBUTES, "end_station",
+      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_END_ATTRIBUTES, PROP_END_STATION,
         (Function<String, String> & Serializable) (k -> k.substring(12))))
-      .transformVertices(new EncodeProperty<>("start_station"))
-      .transformVertices(new EncodeProperty<>("end_station"))
+      .transformVertices(new EncodeProperty<>(PROP_START_STATION))
+      .transformVertices(new EncodeProperty<>(PROP_END_STATION))
       .callForGraph(extractTripStart)
       .callForGraph(extractTripEnd)
       .transformVertices(new DecodeProperty<>("s"))
       .transformVertices(new MovePropertiesFromMap<>("s"))
       .transformVertices((current, trans) -> {
-        if (current.getLabel().equals("trip")) {
-          current.removeProperty("start_station");
-          current.removeProperty("end_station");
+        if (current.getLabel().equals(LABEL_TRIP)) {
+          current.removeProperty(PROP_START_STATION);
+          current.removeProperty(PROP_END_STATION);
         }
         return current;
       })
-      .callForGraph(new ExtractPropertyFromVertex("trip", "bike_id", "Bike", "id",
+      .callForGraph(new ExtractPropertyFromVertex(LABEL_TRIP, "bike_id", "Bike", "id",
         EdgeDirection.ORIGIN_TO_NEWVERTEX, "useBike"))
-      .callForGraph(new VertexDeduplication<>("Station", Collections.singletonList("id")));
+      .callForGraph(new VertexDeduplication<>(LABEL_STATION, Collections.singletonList("id")));
     // TODO: Remove this, then the bug in ExtractPropertyFromVertex is fixed.
     return transformed.getFactory().fromDataSets(transformed.getVertices(), transformed.getEdges());
   }
