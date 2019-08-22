@@ -61,9 +61,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-s3-fs-hadoop</artifactId>
-            <version>${dep.flink.version}</version>
+            <groupId>org.gradoop</groupId>
+            <artifactId>gradoop-temporal</artifactId>
+            <version>${dep.gradoop.version}</version>
         </dependency>
 
         <!-- Test Dependencies -->

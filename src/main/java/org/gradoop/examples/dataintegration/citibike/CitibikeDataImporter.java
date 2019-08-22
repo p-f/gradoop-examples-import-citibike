@@ -16,6 +16,7 @@
 package org.gradoop.examples.dataintegration.citibike;
 
 import org.gradoop.common.model.impl.id.GradoopId;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.Property;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
@@ -27,6 +28,7 @@ import org.gradoop.examples.dataintegration.citibike.transformations.RenameAndMo
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.DecodeProperty;
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.EncodeProperty;
 import org.gradoop.flink.io.api.DataSource;
+import org.gradoop.flink.model.api.functions.TransformationFunction;
 import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
@@ -106,22 +108,22 @@ public class CitibikeDataImporter implements DataSource {
   /**
    * The property used to temporarily store infos about the start station.
    */
-  private final String PROP_START_STATION = "start_station";
+  public final String PROP_START_STATION = "start_station";
 
   /**
    * The property used to temporarily store infos about the end station.
    */
-  private final String PROP_END_STATION = "end_station";
+  public final String PROP_END_STATION = "end_station";
 
   /**
    * The path of the input CSV file/files.
    */
-  private final String inputPath;
+  public final String inputPath;
 
   /**
    * The Gradoop config.
    */
-  private final GradoopFlinkConfig config;
+  protected final GradoopFlinkConfig config;
 
   /**
    * Initialize this data importer.
@@ -169,8 +171,8 @@ public class CitibikeDataImporter implements DataSource {
       .transformVertices(new MovePropertiesFromMap<>("s"))
       .transformVertices((current, trans) -> {
         if (current.getLabel().equals(LABEL_TRIP)) {
-          current.removeProperty(PROP_START_STATION);
-          current.removeProperty(PROP_END_STATION);
+          current.removeProperty("start_station");
+          current.removeProperty("end_station");
         }
         return current;
       })

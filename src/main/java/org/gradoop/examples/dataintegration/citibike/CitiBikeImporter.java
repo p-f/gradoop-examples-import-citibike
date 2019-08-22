@@ -19,6 +19,10 @@ import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.io.api.DataSource;
 import org.gradoop.flink.util.GradoopFlinkConfig;
+import org.gradoop.temporal.io.api.TemporalDataSource;
+import org.gradoop.temporal.model.api.functions.TimeDimension;
+import org.gradoop.temporal.model.impl.operators.aggregation.functions.AverageDuration;
+import org.gradoop.temporal.util.TemporalGradoopConfig;
 
 /**
  * An importer for {@code https://www.citibikenyc.com/system-data} data.
@@ -33,9 +37,11 @@ public class CitiBikeImporter implements ProgramDescription {
   public static void main(String[] args) throws Exception {
     ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
     GradoopFlinkConfig config = GradoopFlinkConfig.createConfig(environment);
+    TemporalGradoopConfig temporalGradoopConfig = TemporalGradoopConfig.fromGradoopFlinkConfig(config);
     final String inputFile = args[0];
-    DataSource importer = new CitibikeDataImporter(inputFile, config);
-    importer.getLogicalGraph().print();
+    TemporalDataSource importer = new TemporalCitibikeDataImporter(inputFile, temporalGradoopConfig);
+    importer.getTemporalGraph().aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME))
+      .toLogicalGraph().print();
   }
 
   @Override
