@@ -6,13 +6,13 @@
 
     <groupId>org.gradoop</groupId>
     <artifactId>example-import-citibike</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>0.6.0-SNAPSHOT</version>
 
     <properties>
         <!-- The version of Apache Flink. -->
         <dep.flink.version>1.7.2</dep.flink.version>
         <!-- The version of all Gradoop dependencies. -->
-        <dep.gradoop.version>0.5.0-SNAPSHOT</dep.gradoop.version>
+        <dep.gradoop.version>0.6.0-SNAPSHOT</dep.gradoop.version>
     </properties>
 
     <build>
@@ -25,6 +25,56 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>flink-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.gradoop:*</include>
+                                    <include>org.apache.flink:flink_gelly_2.11</include>
+                                    <include>org.apache.flink:flink-shaded-hadoop2</include>
+                                    <include>commons-logging:commons-logging</include>
+                                    <include>org.apache.hbase:hbase-common</include>
+                                    <include>com.github.s1ck:gdl</include>
+                                    <include>org.antlr:antlr4-runtime</include>
+                                    <include>me.lemire.integercompression:*</include>
+                                    <include>org.opencypher:*</include>
+                                    <include>com.google.guava:*</include>
+                                    <!-- CAPF -->
+                                    <include>org.apache.flink:flink-table_2.11</include>
+                                    <include>org.parboiled:parboiled-scala_2.11</include>
+                                    <include>com.lihaoyi:ujson_2.11</include>
+                                    <include>com.lihaoyi:upickle_2.11</include>
+                                    <include>org.typelevel:cats-kernel_2.11</include>
+                                    <include>org.typelevel:cats-core_2.11</include>
+                                    <include>org.atnos:eff_2.11</include>
+                                    <include>org.parboiled:*</include>
+                                </includes>
+                            </artifactSet>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>minimal</shadedClassifierName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <program-class>org.gradoop.examples.dataintegration.citibike.CitiBikeImporter</program-class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -17,11 +17,11 @@ package org.gradoop.examples.dataintegration.citibike;
 
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.gradoop.flink.io.impl.dot.DOTDataSink;
-import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.gradoop.temporal.io.api.TemporalDataSource;
+import org.gradoop.temporal.io.impl.csv.TemporalCSVDataSink;
 import org.gradoop.temporal.model.api.functions.TimeDimension;
+import org.gradoop.temporal.model.impl.TemporalGraph;
 import org.gradoop.temporal.model.impl.operators.aggregation.functions.AverageDuration;
 import org.gradoop.temporal.util.TemporalGradoopConfig;
 
@@ -41,11 +41,11 @@ public class CitiBikeImporter implements ProgramDescription {
     TemporalGradoopConfig temporalGradoopConfig = TemporalGradoopConfig.fromGradoopFlinkConfig(config);
     final String inputFile = args[0];
     TemporalDataSource importer = new TemporalCitibikeDataImporter(inputFile, temporalGradoopConfig);
-    LogicalGraph graph = importer.getTemporalGraph()
-      .aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME))
-      .toLogicalGraph();
-    graph.writeTo(new DOTDataSink(args[1], true, DOTDataSink.DotFormat.SIMPLE), true);
-    environment.execute();
+    TemporalGraph graph = importer.getTemporalGraph()
+      .aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME));
+    //graph.writeTo(new TemporalCSVDataSink(args[1], temporalGradoopConfig), true);
+    //environment.execute();
+    graph.toLogicalGraph().print();
   }
 
   @Override

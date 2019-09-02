@@ -16,7 +16,6 @@
 package org.gradoop.examples.dataintegration.citibike;
 
 import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.Property;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
@@ -28,7 +27,6 @@ import org.gradoop.examples.dataintegration.citibike.transformations.RenameAndMo
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.DecodeProperty;
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.EncodeProperty;
 import org.gradoop.flink.io.api.DataSource;
-import org.gradoop.flink.model.api.functions.TransformationFunction;
 import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
