@@ -177,8 +177,7 @@ public class CitibikeDataImporter implements DataSource {
       .callForGraph(new ExtractPropertyFromVertex(LABEL_TRIP, "bike_id", "Bike", "id",
         EdgeDirection.ORIGIN_TO_NEWVERTEX, "useBike"))
       .callForGraph(new VertexDeduplication<>(LABEL_STATION, Collections.singletonList("id")));
-    // TODO: Remove this, then the bug in ExtractPropertyFromVertex is fixed.
-    return transformed.getFactory().fromDataSets(transformed.getVertices(), transformed.getEdges());
+    return transformed;
   }
 
   @Override
