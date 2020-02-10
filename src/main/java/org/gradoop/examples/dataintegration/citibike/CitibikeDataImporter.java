@@ -215,9 +215,11 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
         }
         return current;
       })
-      .callForGraph(new ExtractPropertyFromVertex(LABEL_TRIP, "bike_id", "Bike", "id",
-        EdgeDirection.ORIGIN_TO_NEWVERTEX, "useBike"))
       .callForGraph(new VertexDeduplication<>(LABEL_STATION, Collections.singletonList("id")));
+    if (outputSchema == TargetGraphSchema.TRIPS_AS_VERTICES) {
+      transformed = transformed.callForGraph(new ExtractPropertyFromVertex(LABEL_TRIP,
+              "bike_id", "Bike", "id", EdgeDirection.ORIGIN_TO_NEWVERTEX, "useBike"));
+    }
     return transformed;
   }
 
