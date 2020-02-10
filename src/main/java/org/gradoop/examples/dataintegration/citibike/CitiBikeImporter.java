@@ -22,6 +22,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.gradoop.flink.io.impl.csv.CSVDataSink;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.gradoop.temporal.io.api.TemporalDataSource;
 import org.gradoop.temporal.io.impl.csv.TemporalCSVDataSink;
@@ -29,6 +30,9 @@ import org.gradoop.temporal.model.api.TimeDimension;
 import org.gradoop.temporal.model.impl.TemporalGraph;
 import org.gradoop.temporal.model.impl.operators.aggregation.functions.AverageDuration;
 import org.gradoop.temporal.util.TemporalGradoopConfig;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * An importer for {@code https://www.citibikenyc.com/system-data} data.
@@ -49,6 +53,7 @@ public class CitiBikeImporter implements ProgramDescription {
     cliOption.addOption(new Option("o", "output", true,
       "Output path. (REQUIRED)"));
     cliOption.addOption(new Option("h", "help", false, "Show this help."));
+    cliOption.addOption(new Option("s", "schema", true, "Select the target schema"));
     CommandLine parsedOptions = new DefaultParser().parse(cliOption, args);
     if (parsedOptions.hasOption('h')) {
       new HelpFormatter().printHelp(CitiBikeImporter.class.getName(), cliOption, true);
@@ -57,17 +62,38 @@ public class CitiBikeImporter implements ProgramDescription {
     if (!(parsedOptions.hasOption('i') && parsedOptions.hasOption('o'))) {
       System.err.println("No input- and output-path given.");
       System.err.println("See --help for more infos.");
+      return;
     }
     final String inputPath = parsedOptions.getOptionValue('i');
     final String outputPath = parsedOptions.getOptionValue('o');
+    final boolean temporal = parsedOptions.hasOption('t');
+    TargetGraphSchema schema;
+    if (parsedOptions.hasOption('s')) {
+      final String schemaString = parsedOptions.getOptionValue('s');
+      try {
+        schema = TargetGraphSchema.valueOf(schemaString);
+      } catch (IllegalArgumentException iae) {
+        System.err.println("Unsupported schema: " + schemaString);
+        System.err.println("Has to be one of: " +
+                Arrays.stream(TargetGraphSchema.values())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", ")));
+        return;
+      }
+    } else {
+      schema = TargetGraphSchema.TRIPS_AS_VERTICES;
+    }
 
     ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
     GradoopFlinkConfig config = GradoopFlinkConfig.createConfig(environment);
     TemporalGradoopConfig temporalGradoopConfig = TemporalGradoopConfig.fromGradoopFlinkConfig(config);
-    TemporalDataSource importer = new TemporalCitibikeDataImporter(inputPath, temporalGradoopConfig);
-    TemporalGraph graph = importer.getTemporalGraph()
-      .aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME));
-    graph.writeTo(new TemporalCSVDataSink(args[1], temporalGradoopConfig), true);
+    CitibikeDataImporter source = new CitibikeDataImporter(inputPath, schema, temporalGradoopConfig);
+    if (temporal) {
+      source.getTemporalGraph().aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME))
+              .writeTo(new TemporalCSVDataSink(outputPath, config));
+    } else {
+      source.getLogicalGraph().writeTo(new CSVDataSink(outputPath, config));
+    }
     environment.execute();
   }
 

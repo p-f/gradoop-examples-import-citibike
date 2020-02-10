@@ -22,6 +22,8 @@ import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
 import org.gradoop.dataintegration.transformation.VertexDeduplication;
 import org.gradoop.dataintegration.transformation.impl.ExtractPropertyFromVertex;
 import org.gradoop.dataintegration.transformation.impl.config.EdgeDirection;
+import org.gradoop.examples.dataintegration.citibike.operators.SplitVertex;
+import org.gradoop.examples.dataintegration.citibike.temporal.ExtractTimeFromFormattedProperties;
 import org.gradoop.examples.dataintegration.citibike.transformations.MovePropertiesFromMap;
 import org.gradoop.examples.dataintegration.citibike.transformations.RenameAndMovePropertiesToMap;
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.DecodeProperty;
@@ -30,6 +32,10 @@ import org.gradoop.flink.io.api.DataSource;
 import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
+import org.gradoop.temporal.io.api.TemporalDataSource;
+import org.gradoop.temporal.model.impl.TemporalGraph;
+import org.gradoop.temporal.model.impl.TemporalGraphCollection;
+import org.gradoop.temporal.util.TemporalGradoopConfig;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -45,7 +51,7 @@ import java.util.function.Function;
  * <b>Note: </b>Citi Bike, Citi Bike and Arc Design and the Blue Wave are registered service marks of
  * Citigroup Inc.
  */
-public class CitibikeDataImporter implements DataSource {
+public class CitibikeDataImporter implements DataSource, TemporalDataSource {
 
   /**
    * The column names of the input CSV files.
@@ -116,7 +122,12 @@ public class CitibikeDataImporter implements DataSource {
   /**
    * The path of the input CSV file/files.
    */
-  public final String inputPath;
+  private final String inputPath;
+
+  /**
+   * Selects which kind of graph should be created.
+   */
+  private final TargetGraphSchema outputSchema;
 
   /**
    * The Gradoop config.
@@ -126,11 +137,14 @@ public class CitibikeDataImporter implements DataSource {
   /**
    * Initialize this data importer.
    *
-   * @param inputPath The path of the input files.
-   * @param config    The Gradoop config.
+   * @param inputPath    The path of the input files.
+   * @param outputSchema The output schema.
+   * @param config       The Gradoop config.
    */
-  public CitibikeDataImporter(String inputPath, GradoopFlinkConfig config) {
+  public CitibikeDataImporter(String inputPath, TargetGraphSchema outputSchema,
+                              GradoopFlinkConfig config) {
     this.inputPath = Objects.requireNonNull(inputPath);
+    this.outputSchema = outputSchema;
     this.config = Objects.requireNonNull(config);
   }
 
@@ -149,28 +163,55 @@ public class CitibikeDataImporter implements DataSource {
       v.setLabel("trip");
       return v;
     });
-    ExtractPropertyFromVertex extractTripStart = new ExtractPropertyFromVertex(
-      LABEL_TRIP, PROP_START_STATION, LABEL_STATION, "s", EdgeDirection.NEWVERTEX_TO_ORIGIN, "trip_start");
-    extractTripStart.setCondensation(false);
-    ExtractPropertyFromVertex extractTripEnd = new ExtractPropertyFromVertex(
-      LABEL_TRIP, PROP_END_STATION, LABEL_STATION, "s", EdgeDirection.ORIGIN_TO_NEWVERTEX, "trip_end");
-    extractTripEnd.setCondensation(false);
+    LogicalGraph preparedTrips = inputGraph
+            .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, PROP_START_STATION,
+                    (Function<String, String> & Serializable) (k -> k.substring(14))))
+            .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_END_ATTRIBUTES, PROP_END_STATION,
+                    (Function<String, String> & Serializable) (k -> k.substring(12))))
+            .transformVertices(new EncodeProperty<>(PROP_START_STATION))
+            .transformVertices(new EncodeProperty<>(PROP_END_STATION));
+    final String start_station = "start_station";
+    final String end_station = "end_station";
+    switch (outputSchema) {
+      case TRIPS_AS_VERTICES:
+        ExtractPropertyFromVertex extractTripStart = new ExtractPropertyFromVertex(
+                LABEL_TRIP, PROP_START_STATION, LABEL_STATION, "s", EdgeDirection.NEWVERTEX_TO_ORIGIN, "trip_start");
+        extractTripStart.setCondensation(false);
+        ExtractPropertyFromVertex extractTripEnd = new ExtractPropertyFromVertex(
+                LABEL_TRIP, PROP_END_STATION, LABEL_STATION, "s", EdgeDirection.ORIGIN_TO_NEWVERTEX, "trip_end");
+        extractTripEnd.setCondensation(false);
+        preparedTrips = preparedTrips
+                .callForGraph(extractTripStart)
+                .callForGraph(extractTripEnd);
+      case TRIPS_AS_EDGES:
+        preparedTrips.callForGraph(new SplitVertex<>(LABEL_STATION, LABEL_STATION,
+                Arrays.asList(start_station), Arrays.asList(end_station)))
+                .transformVertices((c, t) -> {
+                  if (!c.getLabel().equals(LABEL_STATION)) {
+                    return c;
+                  }
+                  PropertyValue s;
+                  if (c.hasProperty(start_station)) {
+                    s = c.getPropertyValue(start_station);
+                  } else if (c.hasProperty(end_station)) {
+                    s = c.getPropertyValue(end_station);
+                  } else {
+                    return c;
+                  }
+                  c.removeProperty(start_station);
+                  c.removeProperty(end_station);
+                  c.setProperty("s", s);
+                  return c;
+                });
+    }
     // Extract stations.
-    LogicalGraph transformed = inputGraph
-      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, PROP_START_STATION,
-        (Function<String, String> & Serializable) (k -> k.substring(14))))
-      .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_END_ATTRIBUTES, PROP_END_STATION,
-        (Function<String, String> & Serializable) (k -> k.substring(12))))
-      .transformVertices(new EncodeProperty<>(PROP_START_STATION))
-      .transformVertices(new EncodeProperty<>(PROP_END_STATION))
-      .callForGraph(extractTripStart)
-      .callForGraph(extractTripEnd)
+    LogicalGraph transformed = preparedTrips
       .transformVertices(new DecodeProperty<>("s"))
       .transformVertices(new MovePropertiesFromMap<>("s"))
       .transformVertices((current, trans) -> {
         if (current.getLabel().equals(LABEL_TRIP)) {
-          current.removeProperty("start_station");
-          current.removeProperty("end_station");
+          current.removeProperty(start_station);
+          current.removeProperty(end_station);
         }
         return current;
       })
@@ -183,5 +224,20 @@ public class CitibikeDataImporter implements DataSource {
   @Override
   public GraphCollection getGraphCollection() throws IOException {
     return config.getGraphCollectionFactory().fromGraph(getLogicalGraph());
+  }
+
+  @Override
+  public TemporalGraph getTemporalGraph() throws IOException {
+    LogicalGraph graph = getLogicalGraph();
+    return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
+      graph.getGraphHead(), null,
+      graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
+        "\"yyyy-MM-dd HH:mm:ss\""),
+      graph.getEdges(), null);
+  }
+
+  @Override
+  public TemporalGraphCollection getTemporalGraphCollection() throws IOException {
+    return ((TemporalGradoopConfig) config).getTemporalGraphCollectionFactory().fromGraph(getTemporalGraph());
   }
 }
