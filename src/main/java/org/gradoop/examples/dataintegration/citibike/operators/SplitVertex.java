@@ -90,7 +90,7 @@ public class SplitVertex<
     final DataSet<Tuple3<V, GradoopId, GradoopId>> triples =
       graph.getVertices().map(new ObjectToTripleWithNewIds<>());
     final DataSet<V> newVertices = triples.flatMap(new CreateVerticesFromTriple<>(labelSource, labelTarget,
-      propertiesSource, propertiesSource, graph.getFactory().getVertexFactory()));
+      propertiesSource, propertiesTarget, graph.getFactory().getVertexFactory()));
     List<String> keys = new ArrayList<>(propertiesSource);
     keys.addAll(propertiesTarget);
     final DataSet<E> newEdges = triples.map(new CreateEdgeFromTriple<>(graph.getFactory().getEdgeFactory(),

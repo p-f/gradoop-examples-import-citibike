@@ -67,6 +67,8 @@ public class CreateEdgeFromTriple<V extends Vertex, E extends Edge>
     final V vertex = triple.f0;
     reuseEdge.setLabel(vertex.getLabel());
     reuseEdge.setId(GradoopId.get());
+    reuseEdge.setSourceId(triple.f1);
+    reuseEdge.setTargetId(triple.f2);
     Properties newProperties = Properties.create();
     for (String vertexProperty : vertex.getPropertyKeys()) {
       if (Collections.binarySearch(keysToRemove, vertexProperty) < 0) {
