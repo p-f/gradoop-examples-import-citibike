@@ -102,7 +102,7 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   /**
    * The label for trip-type vertices.
    */
-  public static final String LABEL_TRIP = "trip";
+  public static final String LABEL_TRIP = "Trip";
 
   /**
    * The label for Station-type vertices.
@@ -160,7 +160,7 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
           v.removeProperty(property.getKey());
         }
       }
-      v.setLabel("trip");
+      v.setLabel(LABEL_TRIP);
       return v;
     });
     LogicalGraph preparedTrips = inputGraph
@@ -170,8 +170,8 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
                     (Function<String, String> & Serializable) (k -> k.substring(12))))
             .transformVertices(new EncodeProperty<>(PROP_START_STATION))
             .transformVertices(new EncodeProperty<>(PROP_END_STATION));
-    final String start_station = "start_station";
-    final String end_station = "end_station";
+    final String start_station = PROP_START_STATION;
+    final String end_station = PROP_END_STATION;
     switch (outputSchema) {
       case TRIPS_AS_VERTICES:
         ExtractPropertyFromVertex extractTripStart = new ExtractPropertyFromVertex(
@@ -184,24 +184,27 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
                 .callForGraph(extractTripStart)
                 .callForGraph(extractTripEnd);
       case TRIPS_AS_EDGES:
-        preparedTrips.callForGraph(new SplitVertex<>(LABEL_STATION, LABEL_STATION,
-                Arrays.asList(start_station), Arrays.asList(end_station)))
-                .transformVertices((c, t) -> {
-                  if (!c.getLabel().equals(LABEL_STATION)) {
-                    return c;
+        // Create Trip edges.
+        preparedTrips = preparedTrips
+          .callForGraph(new SplitVertex<>(LABEL_STATION, LABEL_STATION,
+            Collections.singletonList(start_station), Collections.singletonList(end_station)))
+          .transformVertices((current, t) -> {
+                  if (!current.getLabel().equals(LABEL_STATION)) {
+                    return current;
                   }
-                  PropertyValue s;
-                  if (c.hasProperty(start_station)) {
-                    s = c.getPropertyValue(start_station);
-                  } else if (c.hasProperty(end_station)) {
-                    s = c.getPropertyValue(end_station);
+                  PropertyValue stationProperty;
+                  if (current.hasProperty(start_station)) {
+                    stationProperty = current.getPropertyValue(start_station);
+                  } else if (current.hasProperty(end_station)) {
+                    stationProperty = current.getPropertyValue(end_station);
                   } else {
-                    return c;
+                    return current;
                   }
-                  c.removeProperty(start_station);
-                  c.removeProperty(end_station);
-                  c.setProperty("s", s);
-                  return c;
+                  current.removeProperty(start_station);
+                  current.removeProperty(end_station);
+                  current.setProperty("s", stationProperty);
+
+                  return current;
                 });
     }
     // Extract stations.
@@ -234,8 +237,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "\"yyyy-MM-dd HH:mm:ss\""),
-      graph.getEdges(), null);
+        "\"yyyy-MM-dd HH:mm:ss.SSS\""),
+      graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
+        "\"yyyy-MM-dd HH:mm:ss.SSS\""));
   }
 
   @Override

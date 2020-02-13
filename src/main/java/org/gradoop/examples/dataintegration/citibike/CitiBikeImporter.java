@@ -24,11 +24,7 @@ import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.gradoop.flink.io.impl.csv.CSVDataSink;
 import org.gradoop.flink.util.GradoopFlinkConfig;
-import org.gradoop.temporal.io.api.TemporalDataSource;
 import org.gradoop.temporal.io.impl.csv.TemporalCSVDataSink;
-import org.gradoop.temporal.model.api.TimeDimension;
-import org.gradoop.temporal.model.impl.TemporalGraph;
-import org.gradoop.temporal.model.impl.operators.aggregation.functions.AverageDuration;
 import org.gradoop.temporal.util.TemporalGradoopConfig;
 
 import java.util.Arrays;
@@ -40,20 +36,18 @@ import java.util.stream.Collectors;
 public class CitiBikeImporter implements ProgramDescription {
 
   /**
-   * Main class for this example.
+   * Main class for this Gradoop importer.
    *
    * @param args The command line arguments.
    */
   public static void main(String[] args) throws Exception {
     Options cliOption = new Options();
-    cliOption.addOption(new Option("t", "temporal", false,
-      "Create a temporal graph."));
-    cliOption.addOption(new Option("i", "input", true,
-      "Input path. (REQUIRED)"));
-    cliOption.addOption(new Option("o", "output", true,
-      "Output path. (REQUIRED)"));
+    cliOption.addOption(new Option("t", "temporal", false, "Create a temporal graph."));
+    cliOption.addOption(new Option("i", "input", true, "Input path. (REQUIRED)"));
+    cliOption.addOption(new Option("o", "output", true, "Output path. (REQUIRED)"));
     cliOption.addOption(new Option("h", "help", false, "Show this help."));
-    cliOption.addOption(new Option("s", "schema", true, "Select the target schema"));
+    cliOption.addOption(new Option("s", "schema", true,
+      "Select the target schema 'TRIPS_AS_EDGES' or 'TRIPS_AS_VERTICES'."));
     CommandLine parsedOptions = new DefaultParser().parse(cliOption, args);
     if (parsedOptions.hasOption('h')) {
       new HelpFormatter().printHelp(CitiBikeImporter.class.getName(), cliOption, true);
@@ -89,8 +83,7 @@ public class CitiBikeImporter implements ProgramDescription {
     TemporalGradoopConfig temporalGradoopConfig = TemporalGradoopConfig.fromGradoopFlinkConfig(config);
     CitibikeDataImporter source = new CitibikeDataImporter(inputPath, schema, temporalGradoopConfig);
     if (temporal) {
-      source.getTemporalGraph().aggregate(new AverageDuration("avgTripDur", TimeDimension.VALID_TIME))
-              .writeTo(new TemporalCSVDataSink(outputPath, config));
+      source.getTemporalGraph().writeTo(new TemporalCSVDataSink(outputPath, config));
     } else {
       source.getLogicalGraph().writeTo(new CSVDataSink(outputPath, config));
     }
