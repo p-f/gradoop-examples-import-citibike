@@ -22,6 +22,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.flink.api.common.ProgramDescription;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.gradoop.examples.dataintegration.citibike.metadata.MetaDataUtil;
+import org.gradoop.examples.dataintegration.citibike.metadata.station.StationMetadata;
 import org.gradoop.flink.io.impl.csv.CSVDataSink;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.gradoop.temporal.io.impl.csv.TemporalCSVDataSink;
@@ -48,6 +50,7 @@ public class CitiBikeImporter implements ProgramDescription {
     cliOption.addOption(new Option("h", "help", false, "Show this help."));
     cliOption.addOption(new Option("s", "schema", true,
       "Select the target schema 'TRIPS_AS_EDGES' or 'TRIPS_AS_VERTICES'."));
+    cliOption.addOption(new Option("m", "metadata", true, "Attach station metadata"));
     CommandLine parsedOptions = new DefaultParser().parse(cliOption, args);
     if (parsedOptions.hasOption('h')) {
       new HelpFormatter().printHelp(CitiBikeImporter.class.getName(), cliOption, true);
@@ -78,10 +81,15 @@ public class CitiBikeImporter implements ProgramDescription {
       schema = TargetGraphSchema.TRIPS_AS_VERTICES;
     }
 
+    StationMetadata metadata = null;
+    if (parsedOptions.hasOption('m')) {
+      metadata = MetaDataUtil.readStationData(parsedOptions.getOptionValue('m'));
+    }
     ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
     GradoopFlinkConfig config = GradoopFlinkConfig.createConfig(environment);
     TemporalGradoopConfig temporalGradoopConfig = TemporalGradoopConfig.fromGradoopFlinkConfig(config);
-    CitibikeDataImporter source = new CitibikeDataImporter(inputPath, schema, temporalGradoopConfig);
+    CitibikeDataImporter source = new CitibikeDataImporter(inputPath, metadata, schema,
+      temporalGradoopConfig);
     if (temporal) {
       source.getTemporalGraph().writeTo(new TemporalCSVDataSink(outputPath, config));
     } else {

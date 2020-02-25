@@ -22,8 +22,12 @@ import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
 import org.gradoop.dataintegration.transformation.VertexDeduplication;
 import org.gradoop.dataintegration.transformation.impl.ExtractPropertyFromVertex;
 import org.gradoop.dataintegration.transformation.impl.config.EdgeDirection;
+import org.gradoop.examples.dataintegration.citibike.metadata.MetaDataUtil;
+import org.gradoop.examples.dataintegration.citibike.metadata.station.StationMetadata;
 import org.gradoop.examples.dataintegration.citibike.operators.SplitVertex;
+import org.gradoop.examples.dataintegration.citibike.operators.UnquoteAllProperties;
 import org.gradoop.examples.dataintegration.citibike.temporal.ExtractTimeFromFormattedProperties;
+import org.gradoop.examples.dataintegration.citibike.transformations.AttachStationMetaData;
 import org.gradoop.examples.dataintegration.citibike.transformations.MovePropertiesFromMap;
 import org.gradoop.examples.dataintegration.citibike.transformations.RenameAndMovePropertiesToMap;
 import org.gradoop.examples.dataintegration.citibike.transformations.workarounds.DecodeProperty;
@@ -125,6 +129,11 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   private final String inputPath;
 
   /**
+   * The station metadata (optional).
+   */
+  private final StationMetadata metadata;
+
+  /**
    * Selects which kind of graph should be created.
    */
   private final TargetGraphSchema outputSchema;
@@ -136,14 +145,15 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
 
   /**
    * Initialize this data importer.
-   *
-   * @param inputPath    The path of the input files.
+   *  @param inputPath   The path of the input files.
+   * @param metadata     The station metadata (can be {@code null}).
    * @param outputSchema The output schema.
    * @param config       The Gradoop config.
    */
-  public CitibikeDataImporter(String inputPath, TargetGraphSchema outputSchema,
-                              GradoopFlinkConfig config) {
+  public CitibikeDataImporter(String inputPath, StationMetadata metadata, TargetGraphSchema outputSchema,
+    GradoopFlinkConfig config) {
     this.inputPath = Objects.requireNonNull(inputPath);
+    this.metadata = metadata;
     this.outputSchema = outputSchema;
     this.config = Objects.requireNonNull(config);
   }
@@ -162,7 +172,7 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
       }
       v.setLabel(LABEL_TRIP);
       return v;
-    });
+    }).callForGraph(new UnquoteAllProperties<>());
     LogicalGraph preparedTrips = inputGraph
             .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, PROP_START_STATION,
                     (Function<String, String> & Serializable) (k -> k.substring(14))))
@@ -223,6 +233,10 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
       transformed = transformed.callForGraph(new ExtractPropertyFromVertex(LABEL_TRIP,
               "bike_id", "Bike", "id", EdgeDirection.ORIGIN_TO_NEWVERTEX, "useBike"));
     }
+    if (metadata != null) {
+      transformed = transformed.callForGraph(
+        new AttachStationMetaData<>(MetaDataUtil.getStationsById(metadata)));
+    }
     return transformed;
   }
 
@@ -237,9 +251,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "\"yyyy-MM-dd HH:mm:ss.SSS\""),
+        "yyyy-MM-dd HH:mm:ss.SSS"),
       graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "\"yyyy-MM-dd HH:mm:ss.SSS\""));
+        "yyyy-MM-dd HH:mm:ss.SSS"));
   }
 
   @Override

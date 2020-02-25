@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serializable;
 import java.net.URL;
 import java.util.EnumSet;
 
@@ -35,7 +36,7 @@ import java.util.EnumSet;
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
-public class Station {
+public class Station implements Comparable<Station>, Serializable {
 
   /**
    * The station ID.
@@ -46,7 +47,6 @@ public class Station {
   /**
    * The external ID.
    */
-  @EqualsAndHashCode.Include
   private String externalId;
 
   /**
@@ -93,4 +93,9 @@ public class Station {
    * Value of the {@code has_kiosk} field.
    */
   private boolean hasKiosk;
+
+  @Override
+  public int compareTo(Station other) {
+    return this.stationId - other.stationId;
+  }
 }
