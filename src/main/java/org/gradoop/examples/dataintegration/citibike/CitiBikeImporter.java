@@ -50,7 +50,7 @@ public class CitiBikeImporter implements ProgramDescription {
     cliOption.addOption(new Option("h", "help", false, "Show this help."));
     cliOption.addOption(new Option("s", "schema", true,
       "Select the target schema 'TRIPS_AS_EDGES' or 'TRIPS_AS_VERTICES'."));
-    cliOption.addOption(new Option("m", "metadata", true, "Attach station metadata"));
+    cliOption.addOption(new Option("m", "metadata", true, "Attach station metadata."));
     CommandLine parsedOptions = new DefaultParser().parse(cliOption, args);
     if (parsedOptions.hasOption('h')) {
       new HelpFormatter().printHelp(CitiBikeImporter.class.getName(), cliOption, true);

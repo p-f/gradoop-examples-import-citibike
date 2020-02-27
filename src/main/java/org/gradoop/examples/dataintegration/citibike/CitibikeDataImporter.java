@@ -251,9 +251,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss.SSS"),
+        "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss"),
       graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss.SSS"));
+        "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss"));
   }
 
   @Override

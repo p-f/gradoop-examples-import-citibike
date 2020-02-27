@@ -24,11 +24,14 @@ import org.gradoop.temporal.model.impl.pojo.TemporalElement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Extract valid times from property values set on elements.<p>
- * This will expect properties to be Strings storing a formatted date.
+ * This will expect properties to be Strings storing a formatted date.<p>
+ * This will try multiple {@link SimpleDateFormat time formats} and use the first valid result.
  *
  * @param <E> The type of the elements.
  */
@@ -45,9 +48,11 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
   private final String keyEndTime;
 
   /**
-   * A formatter used to parse the date.
+   * Formatters used to parse the date.
+   * This function will try to parse a date string will all formats in the list, in order. The first
+   * successful try will be used.
    */
-  private final DateFormat formatter;
+  private final List<DateFormat> formats;
 
   /**
    * Reduce object instantiations.
@@ -59,12 +64,15 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
    *
    * @param keyStartTime The property key used to read the start time. (may be {@code null})
    * @param keyEndTime   The property key used to read the end time. (may be {@code null})
-   * @param format       The format of the time used to parse the property.
+   * @param format       The formats of the time used to parse the property. (At least one is required.)
    */
-  public ExtractTimeFromFormattedProperties(String keyStartTime, String keyEndTime, String format) {
+  public ExtractTimeFromFormattedProperties(String keyStartTime, String keyEndTime, String... format) {
     this.keyStartTime = keyStartTime;
     this.keyEndTime = keyEndTime;
-    this.formatter = new SimpleDateFormat(format);
+    if (format.length == 0) {
+      throw new IllegalArgumentException("At least one format is expected.");
+    }
+    this.formats = Arrays.stream(format).map(SimpleDateFormat::new).collect(Collectors.toList());
   }
 
   @Override
@@ -93,10 +101,19 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
       throw new IllegalArgumentException("Property was expected to be a String, was " +
         pv.getType().getSimpleName());
     }
-    try {
-      return formatter.parse(pv.getString()).getTime();
-    } catch (ParseException e) {
-      throw new IllegalArgumentException("Failed to parse property.", e);
+    final String dateString = pv.getString();
+    IllegalArgumentException ex = null;
+    for (DateFormat format : formats) {
+      try {
+        return format.parse(dateString).getTime();
+      } catch (ParseException pe) {
+        if (ex != null) {
+          ex.addSuppressed(pe);
+        } else {
+          ex = new IllegalArgumentException(pe);
+        }
+      }
     }
+    throw ex != null ? ex : new IllegalStateException();
   }
 }
