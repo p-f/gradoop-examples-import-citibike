@@ -48,6 +48,7 @@ public class CitiBikeImporter implements ProgramDescription {
     cliOption.addOption(new Option("i", "input", true, "Input path. (REQUIRED)"));
     cliOption.addOption(new Option("o", "output", true, "Output path. (REQUIRED)"));
     cliOption.addOption(new Option("h", "help", false, "Show this help."));
+    cliOption.addOption(new Option("f", "force-overwrite", false, "Overwrite existing data."));
     cliOption.addOption(new Option("s", "schema", true,
       "Select the target schema 'TRIPS_AS_EDGES' or 'TRIPS_AS_VERTICES'."));
     cliOption.addOption(new Option("m", "metadata", true, "Attach station metadata."));
@@ -64,6 +65,7 @@ public class CitiBikeImporter implements ProgramDescription {
     final String inputPath = parsedOptions.getOptionValue('i');
     final String outputPath = parsedOptions.getOptionValue('o');
     final boolean temporal = parsedOptions.hasOption('t');
+    final boolean overWrite = parsedOptions.hasOption('f');
     TargetGraphSchema schema;
     if (parsedOptions.hasOption('s')) {
       final String schemaString = parsedOptions.getOptionValue('s');
@@ -91,11 +93,11 @@ public class CitiBikeImporter implements ProgramDescription {
     CitibikeDataImporter source = new CitibikeDataImporter(inputPath, metadata, schema,
       temporalGradoopConfig);
     if (temporal) {
-      source.getTemporalGraph().writeTo(new TemporalCSVDataSink(outputPath, config));
+      source.getTemporalGraph().writeTo(new TemporalCSVDataSink(outputPath, config), overWrite);
     } else {
-      source.getLogicalGraph().writeTo(new CSVDataSink(outputPath, config));
+      source.getLogicalGraph().writeTo(new CSVDataSink(outputPath, config), overWrite);
     }
-    environment.execute();
+    environment.execute("CitiBike Data Importer from " + inputPath);
   }
 
   @Override

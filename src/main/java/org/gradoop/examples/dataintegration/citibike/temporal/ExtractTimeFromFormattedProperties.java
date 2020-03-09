@@ -20,10 +20,13 @@ import org.gradoop.common.model.api.entities.Element;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.temporal.model.api.functions.TimeIntervalExtractor;
 import org.gradoop.temporal.model.impl.pojo.TemporalElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,11 +34,16 @@ import java.util.stream.Collectors;
 /**
  * Extract valid times from property values set on elements.<p>
  * This will expect properties to be Strings storing a formatted date.<p>
- * This will try multiple {@link SimpleDateFormat time formats} and use the first valid result.
+ * This will try multiple {@link DateTimeFormatter time formats} and use the first valid result.
  *
  * @param <E> The type of the elements.
  */
 public class ExtractTimeFromFormattedProperties<E extends Element> implements TimeIntervalExtractor<E> {
+
+  /**
+   * Logger for this class.
+   */
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExtractTimeFromFormattedProperties.class);
 
   /**
    * The property key storing the start time.
@@ -48,11 +56,16 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
   private final String keyEndTime;
 
   /**
+   * Date formats to try for parsing.
+   */
+  private final String[] formatStrings;
+
+  /**
    * Formatters used to parse the date.
    * This function will try to parse a date string will all formats in the list, in order. The first
    * successful try will be used.
    */
-  private final List<DateFormat> formats;
+  private transient List<DateTimeFormatter> formats;
 
   /**
    * Reduce object instantiations.
@@ -72,7 +85,8 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
     if (format.length == 0) {
       throw new IllegalArgumentException("At least one format is expected.");
     }
-    this.formats = Arrays.stream(format).map(SimpleDateFormat::new).collect(Collectors.toList());
+    this.formatStrings = format;
+    initParsers();
   }
 
   @Override
@@ -86,6 +100,9 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
       reuse.f1 = parse(value.getPropertyValue(keyEndTime));
     } else {
       reuse.f1 = TemporalElement.DEFAULT_TIME_TO;
+    }
+    if (reuse.f0 > reuse.f1) {
+      LOGGER.warn("Valid time constraint (from > to) violated: {}, ({}-{})", value, reuse.f0, reuse.f1);
     }
     return reuse;
   }
@@ -103,10 +120,13 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
     }
     final String dateString = pv.getString();
     IllegalArgumentException ex = null;
-    for (DateFormat format : formats) {
+    if (formats == null) {
+      initParsers();
+    }
+    for (DateTimeFormatter format : formats) {
       try {
-        return format.parse(dateString).getTime();
-      } catch (ParseException pe) {
+        return format.parse(dateString, LocalDateTime::from).toInstant(ZoneOffset.UTC).toEpochMilli();
+      } catch (DateTimeParseException pe) {
         if (ex != null) {
           ex.addSuppressed(pe);
         } else {
@@ -115,5 +135,13 @@ public class ExtractTimeFromFormattedProperties<E extends Element> implements Ti
       }
     }
     throw ex != null ? ex : new IllegalStateException();
+  }
+
+  /**
+   * Initialize the parsers. This is necessary since {@link #formats} will not be serialized.
+   */
+  private void initParsers() {
+    this.formats = Arrays.stream(this.formatStrings).map(DateTimeFormatter::ofPattern)
+      .collect(Collectors.toList());
   }
 }

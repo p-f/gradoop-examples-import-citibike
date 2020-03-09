@@ -24,6 +24,7 @@ import org.gradoop.dataintegration.transformation.impl.ExtractPropertyFromVertex
 import org.gradoop.dataintegration.transformation.impl.config.EdgeDirection;
 import org.gradoop.examples.dataintegration.citibike.metadata.MetaDataUtil;
 import org.gradoop.examples.dataintegration.citibike.metadata.station.StationMetadata;
+import org.gradoop.examples.dataintegration.citibike.operators.CleanDataCustom;
 import org.gradoop.examples.dataintegration.citibike.operators.SplitVertex;
 import org.gradoop.examples.dataintegration.citibike.operators.UnquoteAllProperties;
 import org.gradoop.examples.dataintegration.citibike.temporal.ExtractTimeFromFormattedProperties;
@@ -99,11 +100,6 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   );
 
   /**
-   * A placeholder used for unset properties.
-   */
-  private static final PropertyValue UNSET = PropertyValue.create("\\N");
-
-  /**
    * The label for trip-type vertices.
    */
   public static final String LABEL_TRIP = "Trip";
@@ -161,18 +157,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   @Override
   public LogicalGraph getLogicalGraph() throws IOException {
     DataSource source =  new MinimalCSVImporter(inputPath, ",", config, COLUMNS, false);
-    LogicalGraph inputGraph = source.getLogicalGraph().transformVertices((v, c) -> {
-      v.setId(GradoopId.get());
-      if (v.getProperties() == null) return v;
-      // Clean unset properties.
-      for (Property property : v.getProperties()) {
-        if (property.getValue().equals(UNSET)) {
-          v.removeProperty(property.getKey());
-        }
-      }
-      v.setLabel(LABEL_TRIP);
-      return v;
-    }).callForGraph(new UnquoteAllProperties<>());
+    LogicalGraph inputGraph = source.getLogicalGraph()
+      .callForGraph(new CleanDataCustom())
+      .callForGraph(new UnquoteAllProperties<>());
     LogicalGraph preparedTrips = inputGraph
             .transformVertices(new RenameAndMovePropertiesToMap<>(STATION_START_ATTRIBUTES, PROP_START_STATION,
                     (Function<String, String> & Serializable) (k -> k.substring(14))))
@@ -186,13 +173,12 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
       case TRIPS_AS_VERTICES:
         ExtractPropertyFromVertex extractTripStart = new ExtractPropertyFromVertex(
                 LABEL_TRIP, PROP_START_STATION, LABEL_STATION, "s", EdgeDirection.NEWVERTEX_TO_ORIGIN, "trip_start");
-        extractTripStart.setCondensation(false);
         ExtractPropertyFromVertex extractTripEnd = new ExtractPropertyFromVertex(
                 LABEL_TRIP, PROP_END_STATION, LABEL_STATION, "s", EdgeDirection.ORIGIN_TO_NEWVERTEX, "trip_end");
-        extractTripEnd.setCondensation(false);
         preparedTrips = preparedTrips
                 .callForGraph(extractTripStart)
                 .callForGraph(extractTripEnd);
+        break;
       case TRIPS_AS_EDGES:
         // Create Trip edges.
         preparedTrips = preparedTrips
@@ -216,6 +202,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
 
                   return current;
                 });
+        break;
+      default:
+        throw new UnsupportedOperationException("Schema not supported: " + outputSchema);
     }
     // Extract stations.
     LogicalGraph transformed = preparedTrips
@@ -251,9 +240,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss"),
+        "yyyy-MM-dd HH:mm:ss[.SSS][.SS]"),
       graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss"));
+        "yyyy-MM-dd HH:mm:ss[.SSS][.SS]"));
   }
 
   @Override

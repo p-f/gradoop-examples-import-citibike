@@ -64,6 +64,12 @@
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>org.gradoop.shaded.com.fasterxml.jackson</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>minimal</shadedClassifierName>
                             <transformers>
