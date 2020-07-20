@@ -4,11 +4,29 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <name>Gradoop Example: Citi Bike NYC data import</name>
+    <description>An importer for data provided by Citi Bike NYC as a (temporal) graph.</description>
+    <inceptionYear>2014</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>University of Leipzig (Database Research Group)</name>
+        <url>http://dbs.uni-leipzig.de/en</url>
+    </organization>
+
     <groupId>org.gradoop</groupId>
     <artifactId>example-import-citibike</artifactId>
     <version>0.6.0-SNAPSHOT</version>
 
     <properties>
+        <!-- The source encoding. -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- The version of Apache Flink. -->
         <dep.flink.version>1.7.2</dep.flink.version>
         <!-- The version of all Gradoop dependencies. -->
