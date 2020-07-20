@@ -108,6 +108,16 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   public static final String LABEL_STATION = "Station";
 
   /**
+   * The date time format of the post 2015 datasets.
+   */
+  public static final String DATETIME_FORMAT_1 = "yyyy-MM-dd HH:mm:ss[.SSSS][.SSS][.SS]";
+
+  /**
+   * The date time format of the pre 2015 datasets.
+   */
+  public static final String DATETIME_FORMAT_2 = "M[M]/d[d]/yyyy H[H]:mm[:ss]";
+
+  /**
    * The property used to temporarily store infos about the start station.
    */
   public final String PROP_START_STATION = "start_station";
@@ -238,9 +248,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss[.SSSS][.SSS][.SS]"),
+        DATETIME_FORMAT_1, DATETIME_FORMAT_2),
       graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss[.SSSS][.SSS][.SS]"));
+        DATETIME_FORMAT_1, DATETIME_FORMAT_2));
   }
 
   @Override

@@ -21,6 +21,8 @@ import org.gradoop.flink.model.GradoopFlinkTestBase;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.gradoop.examples.dataintegration.citibike.CitibikeDataImporter.DATETIME_FORMAT_1;
+import static org.gradoop.examples.dataintegration.citibike.CitibikeDataImporter.DATETIME_FORMAT_2;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -43,8 +45,7 @@ public class ExtractTimeFromFormattedPropertiesTest extends GradoopFlinkTestBase
    */
   @Before
   public void setUp() {
-    function = new ExtractTimeFromFormattedProperties<>("from", "to",
-      "yyyy-MM-dd HH:mm:ss[.SSS][.SS]");
+    function = new ExtractTimeFromFormattedProperties<>("from", "to", DATETIME_FORMAT_1, DATETIME_FORMAT_2);
     element = getConfig().getLogicalGraphFactory().getVertexFactory().createVertex();
   }
 
@@ -78,5 +79,41 @@ public class ExtractTimeFromFormattedPropertiesTest extends GradoopFlinkTestBase
     final Tuple2<Long, Long> result = function.map(element);
     assertEquals(1583060461120L, (long) result.f0);
     assertEquals(1583060461123L, (long) result.f1);
+  }
+
+  /**
+   * Test the parser with a 4-digit millisecond field.
+   */
+  @Test
+  public void testWithMoreOptionalField() {
+    element.setProperty("from", "2020-03-01 11:01:01.1234");
+    element.setProperty("to", "2020-03-01 11:01:01.1234");
+    final Tuple2<Long, Long> result = function.map(element);
+    assertEquals(1583060461123L, (long) result.f0);
+    assertEquals(1583060461123L, (long) result.f1);
+  }
+
+  /**
+   * Test the parser with a format from the early 2015 dataset.
+   */
+  @Test
+  public void testWithSecondFormatEarly2015() {
+    element.setProperty("from", "3/1/2015 0:09");
+    element.setProperty("to", "3/23/2015 18:06");
+    final Tuple2<Long, Long> result = function.map(element);
+    assertEquals(1425168540000L, (long) result.f0);
+    assertEquals(1427133960000L, (long) result.f1);
+  }
+
+  /**
+   * Test the parser with a format from the later 2015 dataset.
+   */
+  @Test
+  public void testWithSecondFormatLate2015() {
+    element.setProperty("from", "12/1/2015 08:53:14");
+    element.setProperty("to", "12/1/2015 08:53:58");
+    final Tuple2<Long, Long> result = function.map(element);
+    assertEquals(1448959994000L, (long) result.f0);
+    assertEquals(1448960038000L, (long) result.f1);
   }
 }
