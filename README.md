@@ -1,4 +1,5 @@
-#Gradoop Example: Citi Bike NYC data importer
+# Gradoop Example: Citi Bike NYC data importer
+
 This is an example application for the distributed graph analytics framework
 [Gradoop](https://github.com/dbs-leipzig/gradoop). This application is therefore
 also built on [Apache Flink](https://flink.apache.org/).
@@ -12,7 +13,8 @@ _trip_ elements will have their corresponding start and end times set as the
 valid time. It is also possible to have [Station Metadata (also provided by Citi Bike NYC)](https://gbfs.citibikenyc.com/gbfs/en/station_information.json)
 parsed and attached to station elements.
 
-##Building
+## Building
+
 This application can be built using Maven. Simply run
 ```
 mvn package
@@ -28,7 +30,8 @@ Likewise, you can use `-Ddep.flink.version` to change to desired Flink version.
 Note that only the mentioned versions are tested for this example.
 
 
-##Execution
+## Execution
+
 The build process with create a `JAR` package named
 `example-import-citibike-VERSION-minimal.jar` in the `target` directory.
 This application can be executed using a Flink client. Run
@@ -39,7 +42,8 @@ where `THE_PACKAGE` is the path to the built project package.
 You can also your IDE and start the application from the
 `org.gradoop.examples.dataintegration.citibike.CitiBikeImporter` class.
 
-###Configuration
+### Configuration
+
 The application takes a number of command line parameters:
 
 |Parameter| Argument | Description |
@@ -59,8 +63,11 @@ The output path is a directory.
 Both paths may be HDFS paths. The output will be in the Gradoop CSV format,
 either as a logical graph or as a temporal graph, with the `-t` flag.
 
-#License
+# License
+
 > This project is part of Gradoop.
+>
+>
 > Copyright © 2014 - 2019 Leipzig University (Database Research Group)
 >
 > Licensed under the Apache License, Version 2.0 (the "License")
