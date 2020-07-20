@@ -15,8 +15,6 @@
  */
 package org.gradoop.examples.dataintegration.citibike;
 
-import org.gradoop.common.model.impl.id.GradoopId;
-import org.gradoop.common.model.impl.properties.Property;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
 import org.gradoop.dataintegration.transformation.VertexDeduplication;
@@ -240,9 +238,9 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
       graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss[.SSS][.SS]"),
+        "yyyy-MM-dd HH:mm:ss[.SSSS][.SSS][.SS]"),
       graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        "yyyy-MM-dd HH:mm:ss[.SSS][.SS]"));
+        "yyyy-MM-dd HH:mm:ss[.SSSS][.SSS][.SS]"));
   }
 
   @Override
