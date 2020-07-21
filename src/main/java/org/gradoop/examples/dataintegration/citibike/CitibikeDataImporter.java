@@ -15,6 +15,8 @@
  */
 package org.gradoop.examples.dataintegration.citibike;
 
+import org.gradoop.common.model.impl.pojo.EPGMEdge;
+import org.gradoop.common.model.impl.pojo.EPGMVertex;
 import org.gradoop.common.model.impl.properties.PropertyValue;
 import org.gradoop.dataintegration.importer.impl.csv.MinimalCSVImporter;
 import org.gradoop.dataintegration.transformation.VertexDeduplication;
@@ -26,6 +28,7 @@ import org.gradoop.examples.dataintegration.citibike.operators.CleanDataCustom;
 import org.gradoop.examples.dataintegration.citibike.operators.SplitVertex;
 import org.gradoop.examples.dataintegration.citibike.operators.UnquoteAllProperties;
 import org.gradoop.examples.dataintegration.citibike.temporal.ExtractTimeFromFormattedProperties;
+import org.gradoop.examples.dataintegration.citibike.temporal.RemoveElementsWithInvalidTimes;
 import org.gradoop.examples.dataintegration.citibike.transformations.AttachStationMetaData;
 import org.gradoop.examples.dataintegration.citibike.transformations.MovePropertiesFromMap;
 import org.gradoop.examples.dataintegration.citibike.transformations.RenameAndMovePropertiesToMap;
@@ -36,6 +39,7 @@ import org.gradoop.flink.model.impl.epgm.GraphCollection;
 import org.gradoop.flink.model.impl.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.gradoop.temporal.io.api.TemporalDataSource;
+import org.gradoop.temporal.model.api.functions.TimeIntervalExtractor;
 import org.gradoop.temporal.model.impl.TemporalGraph;
 import org.gradoop.temporal.model.impl.TemporalGraphCollection;
 import org.gradoop.temporal.util.TemporalGradoopConfig;
@@ -245,12 +249,18 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
   @Override
   public TemporalGraph getTemporalGraph() throws IOException {
     LogicalGraph graph = getLogicalGraph();
+    final TimeIntervalExtractor<EPGMVertex> vertexIntervalExtractor =
+            new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
+                    DATETIME_FORMAT_1, DATETIME_FORMAT_2);
+    final TimeIntervalExtractor<EPGMEdge> edgeIntervalExtractor =
+            new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
+                    DATETIME_FORMAT_1, DATETIME_FORMAT_2);
     return ((TemporalGradoopConfig) config).getTemporalGraphFactory().fromNonTemporalDataSets(
       graph.getGraphHead(), null,
-      graph.getVertices(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        DATETIME_FORMAT_1, DATETIME_FORMAT_2),
-      graph.getEdges(), new ExtractTimeFromFormattedProperties<>("starttime", "stoptime",
-        DATETIME_FORMAT_1, DATETIME_FORMAT_2));
+      graph.getVertices().filter(new RemoveElementsWithInvalidTimes<>(vertexIntervalExtractor)),
+            vertexIntervalExtractor,
+      graph.getEdges().filter(new RemoveElementsWithInvalidTimes<>(edgeIntervalExtractor)),
+            edgeIntervalExtractor);
   }
 
   @Override
