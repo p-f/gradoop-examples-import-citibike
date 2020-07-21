@@ -48,11 +48,11 @@ The application takes a number of command line parameters:
 
 |Parameter| Argument | Description |
 |:-------:|----------|-------------|
-| `-i`    | INPUT    | The input path. |
-| `-o`    | OUTPUT   | The output path. |
-| `-m`    | PATH     | The path of the metadata JSON file (optional). |
-| `-s`    | SCHEMA   | The schema to create the graph in. |
-| `-t`    | (none)   | Creates a temporal graph if set. |
+| `-i`    | INPUT    | The input path, e.g., `/path/to/datasets/`. |
+| `-o`    | OUTPUT   | The output path, e.g., `/path/to/output/`. |
+| `-m`    | PATH     | The path of the metadata JSON file (optional), e.g., `/path/to/metadata.json` |
+| `-s`    | SCHEMA   | The schema to create the graph in: `TRIPS_AS_EDGES` or `TRIPS_AS_VERTICES`. |
+| `-t`    | (none)   | Creates a `TemporalGraph` instead of a `LogicalGraph`. |
 | `-f`    | (none)   | Overwrite existing data. |
 | `-h`    | (none)   | Show help. |
 
