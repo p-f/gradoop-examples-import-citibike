@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 - 2019 Leipzig University (Database Research Group)
+ * Copyright © 2014 - 2021 Leipzig University (Database Research Group)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public class CleanDataCustom implements UnaryGraphToGraphOperator {
   private static class CleanVertices implements FlatMapFunction<EPGMVertex, EPGMVertex> {
 
     @Override
-    public void flatMap(EPGMVertex in, Collector<EPGMVertex> out) throws Exception {
+    public void flatMap(EPGMVertex in, Collector<EPGMVertex> out) {
       in.setId(GradoopId.get());
       if (in.getProperties() == null) return;
       // Clean unset properties.

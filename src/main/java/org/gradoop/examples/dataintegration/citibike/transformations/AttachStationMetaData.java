@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 - 2019 Leipzig University (Database Research Group)
+ * Copyright © 2014 - 2021 Leipzig University (Database Research Group)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ public class AttachStationMetaData<
         LOGGER.warn("Station was not id property: {}", vertex);
         return vertex;
       }
-      int stationId = -1;
+      int stationId;
       try {
         stationId = Integer.parseInt(idValue.getString());
       } catch (NumberFormatException nfe) {
