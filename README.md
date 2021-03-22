@@ -20,7 +20,7 @@ This application can be built using Maven. Simply run
 mvn package
 ```
 in the project directory. This application uses the latest snapshot version
-`0.6.0-SNAPSHOT` of Gradoop and version `1.7.2` of Apache Flink.
+`0.6.0-SNAPSHOT` of Gradoop and version `1.9.3` of Apache Flink.
 
 If you want to build this application for other versions of Gradoop, you can use
 ```
