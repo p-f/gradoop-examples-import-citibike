@@ -28,7 +28,7 @@
         <!-- The source encoding. -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- The version of Apache Flink. -->
-        <dep.flink.version>1.7.2</dep.flink.version>
+        <dep.flink.version>1.9.3</dep.flink.version>
         <!-- The version of all Gradoop dependencies. -->
         <dep.gradoop.version>0.6.0-SNAPSHOT</dep.gradoop.version>
     </properties>
@@ -64,7 +64,7 @@
                                     <include>org.apache.flink:flink-shaded-hadoop2</include>
                                     <include>commons-logging:commons-logging</include>
                                     <include>org.apache.hbase:hbase-common</include>
-                                    <include>com.github.s1ck:gdl</include>
+                                    <include>org.gradoop.gdl:gradoop-gdl</include>
                                     <include>org.antlr:antlr4-runtime</include>
                                     <include>me.lemire.integercompression:*</include>
                                     <include>org.opencypher:*</include>

@@ -168,7 +168,7 @@ public class CitibikeDataImporter implements DataSource, TemporalDataSource {
 
   @Override
   public LogicalGraph getLogicalGraph() throws IOException {
-    DataSource source =  new MinimalCSVImporter(inputPath, ",", config, COLUMNS, false);
+    DataSource source =  new MinimalCSVImporter(inputPath, ",", config, COLUMNS);
     LogicalGraph inputGraph = source.getLogicalGraph()
       .callForGraph(new CleanDataCustom())
       .callForGraph(new UnquoteAllProperties<>());
